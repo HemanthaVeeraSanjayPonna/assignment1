@@ -34,7 +34,7 @@ $(document).ready(function () {
                 // Fetch data from API
                 getDataFromAPI(url).then(resultJson => {
                     // Populate document with sunrise-sunset data
-                    displaySunriseSunsetData(resultJson.results, $('#result-container'), "Today's Info");
+                    displaySunriseSunsetData(resultJson.results, $('#result-container'), "Today's Info", null);
                 }).catch(error => {
                     // Handle error from getDataFromAPI
                     console.error('An error occurred while fetching data:', error.message);
@@ -43,7 +43,7 @@ $(document).ready(function () {
                 let urlForTomorrow = `${url}&date=${getTomorrowDate()}`;
                 getDataFromAPI(urlForTomorrow).then(resultJson => {
                     // Populate document with sunrise-sunset data
-                    displaySunriseSunsetData(resultJson.results, $('#result-container-tomorrow'), "Tomorrow's Info");
+                    displaySunriseSunsetData(resultJson.results, $('#result-container-tomorrow'), "Tomorrow's Info", null);
                 }).catch(error => {
                     // Handle error from getDataFromAPI
                     console.error('An error occurred while fetching data:', error.message);
@@ -79,7 +79,7 @@ $(document).ready(function () {
     }
 
 
-    function displaySunriseSunsetData(data, resultContainer, heading) {
+    function displaySunriseSunsetData(data, resultContainer, heading, dis_name) {
         // Clear previous content
         resultContainer.empty();
     
@@ -99,6 +99,12 @@ $(document).ready(function () {
         
         // Append the "Close" button to the heading
         headingElement.append(closeButton);
+
+        var info = $('<p>')
+        if (dis_name !== null)
+        {
+           info.text(dis_name);
+        }
     
         // Create a Bootstrap table to display specific data
         var table = $('<table>').addClass('table table-bordered');
@@ -128,7 +134,7 @@ $(document).ready(function () {
         table.append(tbody);
     
         // Append the table to the div
-        sunriseSunsetDataDiv.append(headingElement).append(table);
+        sunriseSunsetDataDiv.append(headingElement).append(info).append(table);
     
         // Append the div to the result container
         resultContainer.append(sunriseSunsetDataDiv);
@@ -179,6 +185,129 @@ $(document).ready(function () {
                 throw error; // Propagate the error to the next catch block
             });
     }
+
+
+
+
+
+// Event listener for the "Search" button
+$('#searchLocationButton').click(function () {
+    var location = $('#locationInput').val();
+    if (location) {
+        // Perform a geocoding API request to get the coordinates for the entered location
+        geocodeLocation(location);
+    }
+});
+
+function geocodeLocation(location) {
+    // Perform a geocoding API request to get the coordinates for the entered location
+    var geocodeUrl = 'https://geocode.maps.co/search?q=' + encodeURIComponent(location);
+
+    axios.get(geocodeUrl)
+        .then(response => {
+            // Assuming the response contains geocoding data
+            var geocodeData = response.data;
+
+            // Display the geocoding results in the result container
+            displaySearchResults(geocodeData);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function displaySearchResults(results) {
+
+    let searchContainer = $('#search-result-container')
+    // Clear previous content
+    searchContainer.empty();
+
+    // Create a div to hold the search results
+    var searchResultsDiv = $('<div>').addClass('mt-4');
+
+    var closeButton = $('<button>')
+    .addClass('btn btn-danger close-btn')
+    .text('Close')
+    .click(function () {
+        searchContainer.empty(); // Clear content when close button is clicked
+    });
+
+    // Create a heading for the search results
+    var heading = $('<h2>').addClass('mb-4 d-flex justify-content-between align-items-center').text('Search Results');
+    // Append the "Close" button to the heading
+    heading.append(closeButton);
+    
+    searchResultsDiv.append(heading);
+
+    // Create a list group to display the search results
+    var resultListGroup = $('<ul>').addClass('list-group');
+
+    // Iterate over the results and create list items
+    results.forEach(result => {
+        // Extract latitude and longitude from the result
+        var lat = result.lat;
+        var lon = result.lon;
+        var dis_name = result.display_name;
+
+        // Create a list group item
+        var listItem = $('<li>').addClass('list-group-item list-group-item-action d-flex justify-content-between align-items-center').text(result.display_name);
+
+        // Add a click event to the list item
+        listItem.click(function () {
+            // Handle the click event (e.g., access latitude and longitude)
+            handleResultClick(lat, lon, dis_name);
+        });
+
+        // Append the list item to the list group
+        resultListGroup.append(listItem);
+    });
+
+    // Append the list group to the div
+    searchResultsDiv.append(resultListGroup);
+
+    // Append the div to the result container
+    searchContainer.append(searchResultsDiv);
+}
+
+// Function to handle the click event when a result is clicked
+function handleResultClick(lat, lon, dis_name) {
+    
+    console.log(`Clicked on result with Lat: ${lat}, Lon: ${lon}`);
+    const queryString = `lat=${lat}&lng=${lon}`;
+
+    // Construct API URL
+    
+    let url = `${sunriseSunsetApiBaseUrl}?${queryString}`;
+    // Fetch data from API
+    getDataFromAPI(url).then(resultJson => {
+        // Populate document with sunrise-sunset data
+        displaySunriseSunsetData(resultJson.results, $('#result-container-search'), "Today's Info", dis_name);
+    }).catch(error => {
+        // Handle error from getDataFromAPI
+        console.error('An error occurred while fetching data:', error.message);
+    });
+
+    let urlForTomorrow = `${url}&date=${getTomorrowDate()}`;
+    getDataFromAPI(urlForTomorrow).then(resultJson => {
+        // Populate document with sunrise-sunset data
+        displaySunriseSunsetData(resultJson.results, $('#result-container-search-tomorrow'), "Tomorrow's Info", dis_name);
+    }).catch(error => {
+        // Handle error from getDataFromAPI
+        console.error('An error occurred while fetching data:', error.message);
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
 });
 
 
